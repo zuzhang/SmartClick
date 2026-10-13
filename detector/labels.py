@@ -6,6 +6,7 @@ TEXT_MAPPING = {
     "cancel": "close_button",
     "dismiss": "close_button",
     "close": "close_button",
+    "x": "close_button",
     "skip": "skip",
     "claim": "claim",
     "collect": "collect",
