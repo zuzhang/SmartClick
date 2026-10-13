@@ -1,6 +1,6 @@
 easyocr
 mss
-numpy
+numpy<2
 opencv-python
 PyAutoGUI
 PyYAML
