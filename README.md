@@ -34,6 +34,18 @@ Grant your terminal or Python runtime **Screen Recording** and **Accessibility**
 permissions in macOS System Settings > Privacy & Security. Open and position
 iPhone Mirroring before starting the bot.
 
+If EasyOCR fails to download its models with
+`CERTIFICATE_VERIFY_FAILED` and Python was installed from python.org, run the
+certificate installer included with that Python version, for example:
+
+```bash
+"/Applications/Python 3.12/Install Certificates.command"
+```
+
+Use the matching version if you installed a different Python release. On
+managed networks that inspect HTTPS traffic, Python may also need the
+organization's trusted CA certificate.
+
 ## Run
 
 ```bash
@@ -51,16 +63,54 @@ All detectors implement `detect(frame) -> list[Detection]`. Labels are
 normalized to `close_button`, `skip`, `confirm`, `claim`, `collect`, `continue`,
 `next`, `reward`, and `play`; the decision engine never receives raw OCR text.
 
-To use YOLO, install the optional dependency and supply a trained model whose
-class names are these normalized labels:
+To recognize visual controls such as an X icon, train a YOLO model on screenshots
+from your game. Install the optional dependency:
 
 ```bash
 python -m pip install ultralytics
 ```
 
-Then set `detector: yolo` and `model_path: models/best.pt` in the config. YOLO
-classes that are not supported labels are ignored. No trained model is
-included, so the model path must point to your own weights.
+Use a labeling tool that exports Ultralytics YOLO detection labels. Put the
+screenshots and matching `.txt` label files in this layout; each label file
+contains one normalized `class_id x_center y_center width height` row per box:
+
+```text
+datasets/game-controls/
+  images/
+    train/
+    val/
+  labels/
+    train/
+    val/
+```
+
+Label X buttons as `close_button` and GO buttons/icons as `play`. Use varied
+screenshots showing the controls at different positions, sizes, and game states,
+and include screenshots without target buttons. Keep corresponding image and
+label filenames the same, for example `screen01.png` and `screen01.txt`.
+
+Copy `training/game-controls.yaml.example` to
+`training/game-controls.yaml`, then change `path` to the absolute path of your
+`datasets/game-controls` directory. Train from the project root:
+
+```bash
+cp training/game-controls.yaml.example training/game-controls.yaml
+# Edit training/game-controls.yaml and set its path to your dataset directory.
+yolo detect train model=yolo11n.pt data=training/game-controls.yaml epochs=100 imgsz=640
+```
+
+Training saves weights under `runs/detect/train/weights/best.pt`. Copy the best
+weights into `models/best.pt`, then set these values in `config/config.yaml`:
+
+```yaml
+detector: yolo
+model_path: models/best.pt
+```
+
+The model's class names must match the normalized labels in this project
+(including spelling and underscores); unsupported classes are ignored. No
+trained weights are included. Start with a conservative `min_confidence` and
+test the detection output before allowing the bot to click.
 
 ## Development
 
