@@ -1,0 +1,12 @@
+detector: ocr
+region:
+  left: 100
+  top: 100
+  width: 430
+  height: 900
+min_confidence: 0.8
+interval_seconds: 1.0
+languages:
+  - en
+gpu: false
+model_path: models/best.pt
