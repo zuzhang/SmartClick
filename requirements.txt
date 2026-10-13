@@ -1,0 +1,6 @@
+easyocr
+mss
+numpy
+opencv-python
+PyAutoGUI
+PyYAML
