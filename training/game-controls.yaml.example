@@ -1,0 +1,7 @@
+path: /absolute/path/to/game-controls
+train: images/train
+val: images/val
+
+names:
+  0: close_button
+  1: play
