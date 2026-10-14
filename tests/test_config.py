@@ -2,7 +2,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from app import load_config
+from app import _interval_for_label, load_config
 
 
 class ConfigTests(unittest.TestCase):
@@ -34,6 +34,50 @@ region:
             path.write_text(contents, encoding="utf-8")
             with self.assertRaises(ValueError):
                 load_config(str(path))
+
+    def test_loads_per_label_intervals(self):
+        contents = """
+region:
+  left: 10
+  top: 20
+  width: 300
+  height: 600
+interval_seconds_by_label:
+  close_button: 1.0
+  skip: 1.0
+  play: 3.0
+"""
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "config.yaml"
+            path.write_text(contents, encoding="utf-8")
+            self.assertEqual(
+                load_config(str(path))["interval_seconds_by_label"]["play"],
+                3.0,
+            )
+
+    def test_rejects_invalid_per_label_interval(self):
+        contents = """
+region:
+  left: 10
+  top: 20
+  width: 300
+  height: 600
+interval_seconds_by_label:
+  play: 0
+"""
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "config.yaml"
+            path.write_text(contents, encoding="utf-8")
+            with self.assertRaises(ValueError):
+                load_config(str(path))
+
+    def test_uses_label_interval_or_global_fallback(self):
+        intervals = {"close_button": 1.0, "skip": 1.0, "play": 3.0}
+        self.assertEqual(_interval_for_label("close_button", 2.0, intervals), 1.0)
+        self.assertEqual(_interval_for_label("skip", 2.0, intervals), 1.0)
+        self.assertEqual(_interval_for_label("play", 2.0, intervals), 3.0)
+        self.assertEqual(_interval_for_label("claim", 2.0, intervals), 2.0)
+        self.assertEqual(_interval_for_label(None, 2.0, intervals), 2.0)
 
 
 if __name__ == "__main__":

@@ -1,6 +1,7 @@
 import argparse
 import math
 import time
+from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
 
@@ -8,6 +9,16 @@ import yaml
 
 from actions.clicker import Clicker
 from actions.decision_engine import DecisionEngine
+
+
+def _interval_for_label(
+    label: str | None,
+    default_interval: int | float,
+    label_intervals: Mapping[str, int | float],
+) -> int | float:
+    if label is None:
+        return default_interval
+    return label_intervals.get(label, default_interval)
 
 
 def load_config(path: str) -> dict[str, Any]:
@@ -40,10 +51,24 @@ def load_config(path: str) -> dict[str, Any]:
     interval = config.get("interval_seconds", 1.0)
     if (
         not isinstance(interval, (int, float))
+        or isinstance(interval, bool)
         or not math.isfinite(interval)
         or interval <= 0
     ):
         raise ValueError("interval_seconds must be positive")
+    label_intervals = config.get("interval_seconds_by_label", {})
+    if not isinstance(label_intervals, dict) or any(
+        not isinstance(label, str)
+        or not label
+        or not isinstance(label_interval, (int, float))
+        or isinstance(label_interval, bool)
+        or not math.isfinite(label_interval)
+        or label_interval <= 0
+        for label, label_interval in label_intervals.items()
+    ):
+        raise ValueError(
+            "interval_seconds_by_label must map labels to positive intervals"
+        )
     detector_name = config.get("detector", "ocr")
     if detector_name not in {"ocr", "yolo"}:
         raise ValueError("detector must be either 'ocr' or 'yolo'")
@@ -87,6 +112,7 @@ def main() -> None:
 
     capture = ScreenCapture()
     interval = config.get("interval_seconds", 1.0)
+    label_intervals = config.get("interval_seconds_by_label", {})
 
     try:
         print(f"SmartClick running on region {region}; press Ctrl+C to stop.")
@@ -116,7 +142,13 @@ def main() -> None:
                 )
             else:
                 print("No recognized controls detected; not clicking.")
-            time.sleep(interval)
+            time.sleep(
+                _interval_for_label(
+                    target.label if target is not None else None,
+                    interval,
+                    label_intervals,
+                )
+            )
     except KeyboardInterrupt:
         print("\nSmartClick stopped.")
     finally:
