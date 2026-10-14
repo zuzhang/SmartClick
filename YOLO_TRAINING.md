@@ -48,51 +48,65 @@ The coordinates are normalized to the image dimensions, from 0 to 1. An image
 with multiple boxes has multiple rows. The image and label basenames must match,
 for example `screen01.png` and `screen01.txt`.
 
-Arrange the exported images and labels like this:
+Arrange the exported images and labels like this. The repository's current
+`training/game-controls.yaml` uses the `Train` and `Validation` subset names:
 
 ```text
-datasets/game-controls/
+training/
   images/
-    train/
-    val/
+    Train/
+    Validation/
   labels/
-    train/
-    val/
+    Train/
+    Validation/
 ```
 
 CVAT may export all images into a single subset. In that case, split the
-images between `train` and `val` yourself and move each image's matching label
-file into the corresponding labels folder. For 22 images, a starting split
-could be 18 train and 4 val. Keep near-duplicate screenshots together in one
-split. Images without target objects can be included as negative examples; if
-CVAT did not export an empty `.txt` file for one, the image can still stay in
-the dataset without one.
+images between the training and validation subsets yourself and move each
+image's matching label file into the corresponding labels folder. Keep
+near-duplicate screenshots together in one split. Images without target
+objects can be included as negative examples; if CVAT did not export an empty
+`.txt` file for one, the image can still stay in the dataset without one.
 
 ## 3. Create the dataset configuration
 
-Create `training/game-controls.yaml` (and the `training` directory if needed).
-Set `path` to the absolute path of your dataset directory. For example, if CVAT's exported class list contains `close_button`, `skip`, and
-`play` in that order:
+The repository's `training/game-controls.yaml` is configured for the layout
+above and uses `training` as the dataset root (when running commands from the
+project root):
 
 ```yaml
-path: /Users/your-name/Projects/SmartClick/datasets/game-controls
-train: images/train
-val: images/val
+path: training
+train: images/Train
+val: images/Validation
 
 names:
   0: close_button
-  1: skip
-  2: play
+  1: play
+  2: skip
 ```
+
+You can instead use lowercase subset directories such as `images/train`,
+`images/val`, `labels/train`, and `labels/val`, or set `path` to another dataset
+root. In either case, make the corresponding paths and class names match your
+actual data. `train` and `val` must be present in every dataset YAML: each can
+refer either to a directory of images or to a text file listing image paths.
 
 Preserve the complete class list and exact class-ID order from CVAT's exported
 `data.yaml` or class list, even if some classes do not yet have examples. The
-IDs in the `.txt` files must match this order. The numbers in SmartClick's
+IDs in the `.txt` label files must match this order. Do not renumber existing
+classes when adding images or classes. The numbers in SmartClick's
 decision-priority mapping are not YOLO class IDs.
 
 Before training, confirm the configured train and validation folders exist and
-contain images. If you only have training data, create a validation split
+contain images (or that each configured image-list text file exists and lists
+valid image paths). If you only have training data, create a validation split
 first; do not point `val` at a nonexistent directory.
+
+For example, with `path: training`, a list-based configuration can use
+`train: Train.txt` and `val: Validation.txt`. Put one image path per line in
+each list, relative to the dataset root, such as `images/Train/new-screen.png`.
+The list entries refer to images, not label files; YOLO finds labels from the
+matching image and label directory structure.
 
 ## 4. Train the detector
 
@@ -102,11 +116,17 @@ From the project root, with the virtual environment active, run:
 yolo detect train \
   model=yolo11n.pt \
   data=training/game-controls.yaml \
-  epochs=100 \
-  imgsz=640
+  epochs=20 \
+  imgsz=640 \
+  device=cpu
 ```
 
-Ultralytics downloads the pretrained `yolo11n.pt` checkpoint if necessary.
+This command starts from the pretrained `yolo11n.pt` checkpoint, trains for 20
+epochs at 640-pixel image size, and uses the CPU. CPU training works without a
+supported GPU but can take substantially longer. To use an available GPU,
+omit `device=cpu` or set `device=0`. Ultralytics downloads the pretrained
+checkpoint if necessary.
+
 Training results are written to a run directory such as
 `runs/detect/train/`; if that name already exists, Ultralytics creates another
 such as `train2` or `train3`. Use the run directory printed at the end of
@@ -116,7 +136,44 @@ training. The best checkpoint is at:
 runs/detect/<your-run-name>/weights/best.pt
 ```
 
-## 5. Test on a screenshot
+## 5. Add more images and train again
+
+For every new screenshot, create accurate bounding-box labels for all target
+controls in the same YOLO format and class-ID order. Put each image and its
+matching label file in the same subset structure, for example:
+
+```text
+training/images/Train/new-screen.png
+training/labels/Train/new-screen.txt
+```
+
+Use `Validation` for images held out to measure performance. Avoid putting
+near-duplicate frames or screenshots from the same short gameplay sequence in
+both subsets, since that can make validation results look better than
+generalization really is. With the current directory-based YAML, adding files
+to those directories does not require changing the YAML. If `train` or `val`
+points to a text file instead, add each new image's path to the appropriate
+list file as well.
+
+Retrain using the updated dataset and the previous run's best weights as the
+starting checkpoint:
+
+```bash
+yolo detect train \
+  model=runs/detect/<previous-run-name>/weights/best.pt \
+  data=training/game-controls.yaml \
+  epochs=20 \
+  imgsz=640 \
+  device=cpu
+```
+
+Keep the earlier training images in the training set when possible; training
+only on new images can make the model forget controls it previously learned.
+The command above starts a new fine-tuning run from `best.pt`. It does not
+resume the previous run's optimizer state. Use `resume=True` only to continue
+an interrupted run with its `last.pt`, not as the normal way to add data.
+
+## 6. Test on a screenshot
 
 Use a screenshot that was not used for training. Replace the example path with
 the full path to your image:
@@ -147,7 +204,7 @@ yolo detect val \
 With a small dataset, validation metrics can vary substantially. Test on
 several varied screenshots that were not used for training as well.
 
-## 6. Use the model with SmartClick
+## 7. Use the model with SmartClick
 
 Copy the trained checkpoint into the project and configure the app:
 

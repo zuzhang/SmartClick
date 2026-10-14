@@ -5,3 +5,4 @@ val: images/val
 names:
   0: close_button
   1: play
+  2: skip

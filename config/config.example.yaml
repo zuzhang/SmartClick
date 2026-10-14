@@ -6,6 +6,10 @@ region:
   height: 900
 min_confidence: 0.8
 interval_seconds: 1.0
+interval_seconds_by_label:
+  close_button: 1.0
+  skip: 1.0
+  play: 3.0
 languages:
   - en
 gpu: false

@@ -94,6 +94,11 @@ detector: yolo
 model_path: models/best.pt
 ```
 
+Use `interval_seconds` as the default delay between detection cycles, and
+`interval_seconds_by_label` to override the delay after clicking a particular
+label. For example, the sample config uses a 1-second delay after `close_button`
+or `skip` and 3 seconds after `play`.
+
 The model's class names must match the normalized labels in this project
 (including spelling and underscores); unsupported classes are ignored. No
 trained weights are included. Start with a conservative `min_confidence` and
