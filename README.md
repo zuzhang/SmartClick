@@ -64,11 +64,8 @@ normalized to `close_button`, `skip`, `confirm`, `claim`, `collect`, `continue`,
 `next`, `reward`, and `play`; the decision engine never receives raw OCR text.
 
 To recognize visual controls such as an X icon, train a YOLO model on screenshots
-from your game. Install the optional dependency:
-
-```bash
-python -m pip install ultralytics
-```
+from your game. See [YOLO_TRAINING.md](YOLO_TRAINING.md) for CVAT export,
+dataset preparation, training, testing, and SmartClick configuration.
 
 Use a labeling tool that exports Ultralytics YOLO detection labels. Put the
 screenshots and matching `.txt` label files in this layout; each label file
@@ -89,18 +86,8 @@ screenshots showing the controls at different positions, sizes, and game states,
 and include screenshots without target buttons. Keep corresponding image and
 label filenames the same, for example `screen01.png` and `screen01.txt`.
 
-Copy `training/game-controls.yaml.example` to
-`training/game-controls.yaml`, then change `path` to the absolute path of your
-`datasets/game-controls` directory. Train from the project root:
-
-```bash
-cp training/game-controls.yaml.example training/game-controls.yaml
-# Edit training/game-controls.yaml and set its path to your dataset directory.
-yolo detect train model=yolo11n.pt data=training/game-controls.yaml epochs=100 imgsz=640
-```
-
-Training saves weights under `runs/detect/train/weights/best.pt`. Copy the best
-weights into `models/best.pt`, then set these values in `config/config.yaml`:
+After training, copy the best weights into `models/best.pt`, then set these
+values in `config/config.yaml`:
 
 ```yaml
 detector: yolo
