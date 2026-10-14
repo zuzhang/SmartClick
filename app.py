@@ -92,10 +92,30 @@ def main() -> None:
         print(f"SmartClick running on region {region}; press Ctrl+C to stop.")
         while True:
             frame = capture.grab(region)
-            target = decision_engine.choose(detector.detect(frame))
+            detections = detector.detect(frame)
+            for detection in detections:
+                screen_x = region["left"] + detection.center_x
+                screen_y = region["top"] + detection.center_y
+                print(
+                    f"Detected {detection.label} at screen ({screen_x}, {screen_y}) "
+                    f"[region ({detection.center_x}, {detection.center_y}); "
+                    f"confidence {detection.confidence:.2f}]"
+                )
+
+            target = decision_engine.choose(detections)
             if target is not None:
                 point = clicker.click_detection(target)
-                print(f"Clicked {target.label} at {point} ({target.confidence:.2f})")
+                print(
+                    f"Clicked {target.label} at screen {point} "
+                    f"(confidence {target.confidence:.2f})"
+                )
+            elif detections:
+                print(
+                    "No detected controls met "
+                    f"min_confidence={decision_engine.min_confidence:.2f}; not clicking."
+                )
+            else:
+                print("No recognized controls detected; not clicking.")
             time.sleep(interval)
     except KeyboardInterrupt:
         print("\nSmartClick stopped.")
