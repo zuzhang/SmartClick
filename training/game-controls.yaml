@@ -1,0 +1,8 @@
+path: training
+train: images/Train
+val: images/Validation
+
+names:
+  0: close_button
+  1: play
+  2: skip
