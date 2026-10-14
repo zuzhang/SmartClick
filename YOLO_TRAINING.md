@@ -172,5 +172,11 @@ letting it click during gameplay:
 python app.py --config config/config.yaml
 ```
 
+For each recognized control, SmartClick prints its screen coordinate (the
+coordinate sent to the mouse), its position relative to the captured region,
+and its confidence. It clicks at the center of the YOLO bounding box or OCR
+text box. If detections are printed but none meet `min_confidence`, the app
+reports that it will not click; if nothing is recognized, it reports that too.
+
 The model's class names must match SmartClick's supported labels exactly, such
 as `close_button`, `skip`, and `play`. Unsupported classes are ignored.
