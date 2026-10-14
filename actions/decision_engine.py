@@ -8,10 +8,10 @@ PRIORITY = {
     "skip": 90,
     # "claim": 80,
     # "collect": 70,
-    # "confirm": 60,
+    "confirm": 60,
     # "continue": 50,
     # "next": 40,
-    # "reward": 30,
+    "watch": 30,
     "play": 110,
 }
 
