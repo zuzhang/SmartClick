@@ -20,6 +20,14 @@ class DecisionEngineTests(unittest.TestCase):
         ]
         self.assertEqual(DecisionEngine().choose(detections).center_x, 2)
 
+    def test_selects_confirm_detection(self):
+        detection = Detection("confirm", 0.95, 2, 2)
+        self.assertEqual(DecisionEngine().choose([detection]), detection)
+
+    def test_selects_watch_detection(self):
+        detection = Detection("watch", 0.95, 2, 2)
+        self.assertEqual(DecisionEngine().choose([detection]), detection)
+
     def test_returns_none_when_no_detection_meets_threshold(self):
         self.assertIsNone(
             DecisionEngine().choose([Detection("claim", 0.79, 1, 1)])

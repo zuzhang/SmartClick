@@ -61,7 +61,8 @@ enabled. The bot does not automatically locate the phone window.
 
 All detectors implement `detect(frame) -> list[Detection]`. Labels are
 normalized to `close_button`, `skip`, `confirm`, `claim`, `collect`, `continue`,
-`next`, `reward`, and `play`; the decision engine never receives raw OCR text.
+`next`, `reward`, `play`, and `watch`; the decision engine never receives raw
+OCR text.
 
 To recognize visual controls such as an X icon, train a YOLO model on screenshots
 from your game. See [YOLO_TRAINING.md](YOLO_TRAINING.md) for CVAT export,
@@ -81,10 +82,11 @@ datasets/game-controls/
     val/
 ```
 
-Label X buttons as `close_button` and GO buttons/icons as `play`. Use varied
-screenshots showing the controls at different positions, sizes, and game states,
-and include screenshots without target buttons. Keep corresponding image and
-label filenames the same, for example `screen01.png` and `screen01.txt`.
+Label X buttons as `close_button`, confirmation buttons as `confirm`, Watch
+buttons as `watch`, and GO buttons/icons as `play`. Use varied screenshots
+showing the controls at different positions, sizes, and game states, and include
+screenshots without target buttons. Keep corresponding image and label filenames
+the same, for example `screen01.png` and `screen01.txt`.
 
 After training, copy the best weights into `models/best.pt`, then set these
 values in `config/config.yaml`:

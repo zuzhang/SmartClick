@@ -19,7 +19,7 @@ TEXT_MAPPING = {
     "next": "next",
     "reward": "reward",
     "play": "play",
-    "watch": "play",
+    "watch": "watch",
     "go": "play",
 }
 

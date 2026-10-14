@@ -16,7 +16,8 @@ class LabelTests(unittest.TestCase):
             "Collect": "collect",
             "Done": "continue",
             "Tap to Claim": "claim",
-            "Watch": "play",
+            "Watch": "watch",
+            "Play": "play",
             "GO!": "play",
         }
         for text, expected in cases.items():
