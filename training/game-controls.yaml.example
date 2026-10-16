@@ -6,3 +6,5 @@ names:
   0: close_button
   1: play
   2: skip
+  3: watch
+  4: confirm
