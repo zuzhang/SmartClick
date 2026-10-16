@@ -1,9 +1,13 @@
-detector: ocr
+# Use YOLO with Apple Silicon's Metal Performance Shaders (MPS).
+detector: yolo
+# To use OCR instead, change detector to ocr and uncomment its options below.
+# detector: ocr
 region:
   left: 100
   top: 100
   width: 430
   height: 900
+device: mps
 min_confidence: 0.8
 interval_seconds: 1.0
 interval_seconds_by_label:
@@ -12,7 +16,8 @@ interval_seconds_by_label:
   play: 1.0
   watch: 5.0
   confirm: 1.0
-languages:
-  - en
-gpu: false
+# OCR-only options; these do not configure YOLO's device.
+# languages:
+#   - en
+# gpu: false
 model_path: models/best.pt

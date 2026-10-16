@@ -8,14 +8,15 @@ from detector.labels import SUPPORTED_LABELS
 
 
 class YOLODetector:
-    def __init__(self, model_path: str):
+    def __init__(self, model_path: str, device: str | int | None = None):
         path = Path(model_path)
         if not path.is_file():
             raise FileNotFoundError(f"YOLO model file does not exist: {path}")
         self.model = YOLO(str(path))
+        self.device = device
 
     def detect(self, frame: np.ndarray) -> list[Detection]:
-        results = self.model(frame, verbose=False)
+        results = self.model(frame, verbose=False, device=self.device)
         detections = []
         for result in results:
             names = result.names
