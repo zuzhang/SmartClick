@@ -52,10 +52,14 @@ organization's trusted CA certificate.
 python app.py --config config/config.yaml
 ```
 
-The sample config defaults to OCR. EasyOCR may download its recognition models
-on first startup. The bot prints each selected normalized label and click
-coordinate. Press `Ctrl+C` to stop; PyAutoGUI's corner fail-safe is also
-enabled. The bot does not automatically locate the phone window.
+The sample config uses YOLO on Apple Silicon via MPS and expects a trained model
+at `models/best.pt`. Install Ultralytics as described in
+[YOLO_TRAINING.md](YOLO_TRAINING.md). To use OCR instead, set `detector: ocr`
+and uncomment the OCR-only settings in `config/config.yaml`; EasyOCR may
+download its recognition models on first startup. The bot prints each selected
+normalized label and click coordinate. Press `Ctrl+C` to stop; PyAutoGUI's
+corner fail-safe is also enabled. The bot does not automatically locate the
+phone window.
 
 ## Detector selection
 

@@ -35,6 +35,37 @@ region:
             with self.assertRaises(ValueError):
                 load_config(str(path))
 
+    def test_loads_yolo_device(self):
+        contents = """
+detector: yolo
+model_path: models/best.pt
+device: mps
+region:
+  left: 10
+  top: 20
+  width: 300
+  height: 600
+"""
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "config.yaml"
+            path.write_text(contents, encoding="utf-8")
+            self.assertEqual(load_config(str(path))["device"], "mps")
+
+    def test_rejects_invalid_device(self):
+        contents = """
+device: " "
+region:
+  left: 10
+  top: 20
+  width: 300
+  height: 600
+"""
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "config.yaml"
+            path.write_text(contents, encoding="utf-8")
+            with self.assertRaises(ValueError):
+                load_config(str(path))
+
     def test_loads_per_label_intervals(self):
         contents = """
 region:

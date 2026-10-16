@@ -219,7 +219,21 @@ In `config/config.yaml`, set:
 ```yaml
 detector: yolo
 model_path: models/best.pt
+device: mps
 ```
+
+On an Apple Silicon Mac, `device: mps` requests inference on the Apple GPU.
+Use `device: cpu` to force CPU inference, or omit `device` to let Ultralytics
+choose. The active PyTorch installation must support MPS; verify it from the
+same virtual environment with:
+
+```bash
+python -c "import torch; print(torch.backends.mps.is_available())"
+```
+
+This should print `True`. If it prints `False`, install a PyTorch build with
+Apple Silicon MPS support in that environment. The `device` setting applies to
+YOLO only; it does not enable GPU use in EasyOCR.
 
 Keep the configured `min_confidence` high enough to avoid acting on uncertain
 detections. Start SmartClick and verify its detections and chosen actions before

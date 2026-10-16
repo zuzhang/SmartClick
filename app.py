@@ -72,6 +72,16 @@ def load_config(path: str) -> dict[str, Any]:
     detector_name = config.get("detector", "ocr")
     if detector_name not in {"ocr", "yolo"}:
         raise ValueError("detector must be either 'ocr' or 'yolo'")
+    device = config.get("device")
+    if device is not None and (
+        isinstance(device, bool)
+        or not isinstance(device, (str, int))
+        or (isinstance(device, str) and not device.strip())
+        or (isinstance(device, int) and device < 0)
+    ):
+        raise ValueError(
+            "device must be a non-empty device name or non-negative index"
+        )
     if detector_name == "yolo" and not config.get("model_path"):
         raise ValueError("model_path is required when detector is 'yolo'")
     if detector_name == "ocr":
@@ -95,7 +105,10 @@ def create_detector(config: dict[str, Any]):
         )
     from detector.yolo_detector import YOLODetector
 
-    return YOLODetector(model_path=config["model_path"])
+    return YOLODetector(
+        model_path=config["model_path"],
+        device=config.get("device"),
+    )
 
 
 def main() -> None:
