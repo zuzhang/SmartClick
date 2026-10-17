@@ -121,6 +121,8 @@ def main() -> None:
     detector = create_detector(config)
     decision_engine = DecisionEngine(config.get("min_confidence", 0.8))
     clicker = Clicker(region)
+    import pyautogui
+
     from capture.screen_capture import ScreenCapture
 
     capture = ScreenCapture()
@@ -129,7 +131,10 @@ def main() -> None:
     label_intervals = config.get("interval_seconds_by_label", {})
 
     try:
-        print(f"SmartClick running on region {region}; press Ctrl+C to stop.")
+        print(
+            f"SmartClick running on region {region}; press Ctrl+C or move the "
+            "pointer to the screen's upper-left corner to stop."
+        )
         while True:
             frame = capture.grab(region)
             detections = detector.detect(frame)
@@ -162,6 +167,8 @@ def main() -> None:
             else:
                 print("No recognized controls detected; not clicking.")
             time.sleep(interval)
+    except pyautogui.FailSafeException:
+        print("\nPyAutoGUI fail-safe activated; SmartClick stopped.")
     except KeyboardInterrupt:
         print("\nSmartClick stopped.")
     finally:

@@ -5,13 +5,13 @@ from detector.base import Detection
 
 PRIORITY = {
     "close_button": 100,
-    "skip": 90,
+    "skip": 105,
     # "claim": 80,
-    # "collect": 70,
-    "confirm": 60,
+    "collect": 70,
+    "confirm": 120,
     # "continue": 50,
     # "next": 40,
-    "watch": 30,
+    "watch": 130,
     "play": 110,
 }
 
