@@ -3,4 +3,5 @@ mss
 numpy<2
 opencv-python
 PyAutoGUI
+pynput
 PyYAML
