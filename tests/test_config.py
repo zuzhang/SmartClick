@@ -102,6 +102,36 @@ interval_seconds_by_label:
             with self.assertRaises(ValueError):
                 load_config(str(path))
 
+    def test_rejects_invalid_no_click_screenshot_timeout(self):
+        contents = """
+region:
+  left: 10
+  top: 20
+  width: 300
+  height: 600
+no_click_screenshot_after_seconds: 0
+"""
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "config.yaml"
+            path.write_text(contents, encoding="utf-8")
+            with self.assertRaises(ValueError):
+                load_config(str(path))
+
+    def test_rejects_empty_no_click_screenshot_directory(self):
+        contents = """
+region:
+  left: 10
+  top: 20
+  width: 300
+  height: 600
+no_click_screenshot_dir: " "
+"""
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "config.yaml"
+            path.write_text(contents, encoding="utf-8")
+            with self.assertRaises(ValueError):
+                load_config(str(path))
+
     def test_uses_label_interval_or_global_fallback(self):
         intervals = {"close_button": 1.0, "skip": 1.0, "play": 3.0}
         self.assertEqual(_interval_for_label("close_button", 2.0, intervals), 1.0)
