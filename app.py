@@ -126,7 +126,8 @@ def main() -> None:
     from capture.screen_capture import ScreenCapture
 
     capture = ScreenCapture()
-    interval = config.get("interval_seconds", 1.0)
+    default_interval = config.get("interval_seconds", 1.0)
+    interval = default_interval
     label_intervals = config.get("interval_seconds_by_label", {})
 
     try:
@@ -149,6 +150,11 @@ def main() -> None:
             target = decision_engine.choose(detections)
             if target is not None:
                 point = clicker.click_detection(target)
+                interval = _interval_for_label(
+                    target.label,
+                    default_interval,
+                    label_intervals,
+                )
                 print(
                     f"Clicked {target.label} at screen {point} "
                     f"(confidence {target.confidence:.2f})"
@@ -160,13 +166,7 @@ def main() -> None:
                 )
             else:
                 print("No recognized controls detected; not clicking.")
-            time.sleep(
-                _interval_for_label(
-                    target.label if target is not None else None,
-                    interval,
-                    label_intervals,
-                )
-            )
+            time.sleep(interval)
     except pyautogui.FailSafeException:
         print("\nPyAutoGUI fail-safe activated; SmartClick stopped.")
     except KeyboardInterrupt:
