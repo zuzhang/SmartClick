@@ -110,6 +110,13 @@ label. The current interval remains unchanged when no click occurs. For example,
 the sample config uses a 1-second delay after `close_button` or `skip` and
 3 seconds after `play`.
 
+Set `no_click_screenshot_after_seconds` to save a review screenshot after that
+many seconds without a successful click. The default is 60 seconds, and
+`no_click_screenshot_dir` sets the output folder (default:
+`review_screenshots`). Only one screenshot is saved per no-click period; a
+successful click resets the timer and allows another screenshot after the next
+timeout. Screenshots contain the configured capture region and are saved as PNG.
+
 The model's class names must match the normalized labels in this project
 (including spelling and underscores); unsupported classes are ignored. No
 trained weights are included. Start with a conservative `min_confidence` and

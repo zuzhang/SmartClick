@@ -10,6 +10,9 @@ region:
 device: mps
 min_confidence: 0.8
 interval_seconds: 1.0
+# Save one screenshot after 60 seconds without a successful click.
+no_click_screenshot_after_seconds: 60
+no_click_screenshot_dir: review_screenshots
 interval_seconds_by_label:
   close_button: 1.0
   skip: 1.0

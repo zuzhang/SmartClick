@@ -2,6 +2,7 @@ import argparse
 import math
 import time
 from collections.abc import Mapping
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 
@@ -56,6 +57,26 @@ def load_config(path: str) -> dict[str, Any]:
         or interval <= 0
     ):
         raise ValueError("interval_seconds must be positive")
+    no_click_screenshot_after = config.get(
+        "no_click_screenshot_after_seconds",
+        60.0,
+    )
+    if (
+        not isinstance(no_click_screenshot_after, (int, float))
+        or isinstance(no_click_screenshot_after, bool)
+        or not math.isfinite(no_click_screenshot_after)
+        or no_click_screenshot_after <= 0
+    ):
+        raise ValueError("no_click_screenshot_after_seconds must be positive")
+    no_click_screenshot_dir = config.get(
+        "no_click_screenshot_dir",
+        "review_screenshots",
+    )
+    if (
+        not isinstance(no_click_screenshot_dir, str)
+        or not no_click_screenshot_dir.strip()
+    ):
+        raise ValueError("no_click_screenshot_dir must be a non-empty path")
     label_intervals = config.get("interval_seconds_by_label", {})
     if not isinstance(label_intervals, dict) or any(
         not isinstance(label, str)
@@ -129,6 +150,15 @@ def main() -> None:
     default_interval = config.get("interval_seconds", 1.0)
     interval = default_interval
     label_intervals = config.get("interval_seconds_by_label", {})
+    no_click_screenshot_after = config.get(
+        "no_click_screenshot_after_seconds",
+        60.0,
+    )
+    no_click_screenshot_dir = Path(
+        config.get("no_click_screenshot_dir", "review_screenshots")
+    )
+    no_click_since = time.monotonic()
+    no_click_screenshot_saved = False
 
     try:
         print(
@@ -148,6 +178,22 @@ def main() -> None:
                 )
 
             target = decision_engine.choose(detections)
+            if (
+                not no_click_screenshot_saved
+                and time.monotonic() - no_click_since
+                >= no_click_screenshot_after
+            ):
+                no_click_screenshot_dir.mkdir(parents=True, exist_ok=True)
+                screenshot_path = no_click_screenshot_dir / (
+                    f"{datetime.now():%Y%m%d_%H%M%S_%f}.png"
+                )
+                import cv2
+
+                if not cv2.imwrite(str(screenshot_path), frame):
+                    raise OSError(f"Failed to save review screenshot: {screenshot_path}")
+                no_click_screenshot_saved = True
+                print(f"Saved no-click review screenshot to {screenshot_path}")
+
             if target is not None:
                 point = clicker.click_detection(target)
                 interval = _interval_for_label(
@@ -155,6 +201,8 @@ def main() -> None:
                     default_interval,
                     label_intervals,
                 )
+                no_click_since = time.monotonic()
+                no_click_screenshot_saved = False
                 print(
                     f"Clicked {target.label} at screen {point} "
                     f"(confidence {target.confidence:.2f})"
