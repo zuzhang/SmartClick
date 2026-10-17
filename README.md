@@ -58,8 +58,12 @@ at `models/best.pt`. Install Ultralytics as described in
 and uncomment the OCR-only settings in `config/config.yaml`; EasyOCR may
 download its recognition models on first startup. The bot prints each selected
 normalized label and click coordinate. Press `Ctrl+C` to stop; PyAutoGUI's
-corner fail-safe is also enabled. The bot does not automatically locate the
-phone window.
+corner fail-safe is also enabled: move the pointer to the screen's upper-left
+corner to stop, including when the terminal is not focused. When multiple
+controls share the same priority, SmartClick clicks the highest-confidence
+detection first, then captures a fresh frame before choosing the next action.
+This lets it detect a close button revealed after dismissing an overlay. The
+bot does not automatically locate the phone window.
 
 ## Detector selection
 

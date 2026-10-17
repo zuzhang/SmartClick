@@ -16,6 +16,7 @@ interval_seconds_by_label:
   play: 1.0
   watch: 5.0
   confirm: 1.0
+  collect: 1.0
 # OCR-only options; these do not configure YOLO's device.
 # languages:
 #   - en

@@ -20,6 +20,13 @@ class DecisionEngineTests(unittest.TestCase):
         ]
         self.assertEqual(DecisionEngine().choose(detections).center_x, 2)
 
+    def test_selects_highest_confidence_close_button(self):
+        detections = [
+            Detection("close_button", 0.82, 1, 1),
+            Detection("close_button", 0.95, 2, 2),
+        ]
+        self.assertEqual(DecisionEngine().choose(detections).center_x, 2)
+
     def test_selects_confirm_detection(self):
         detection = Detection("confirm", 0.95, 2, 2)
         self.assertEqual(DecisionEngine().choose([detection]), detection)
