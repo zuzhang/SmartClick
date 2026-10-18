@@ -23,12 +23,20 @@ source .venv/bin/activate
 python -m pip install -r requirements.txt
 ```
 
-Copy `config/config.example.yaml` to `config/config.yaml`. Set `region` to the
-screen coordinates and dimensions of the mirrored iPhone window. Keep the
-region tightly around the phone; clicks outside it are rejected. Coordinates
-are physical screen pixels, with the origin at the top-left of the display.
-For Retina displays, check that the coordinates reported by your screen
-measurement tool use the same pixel scale as MSS.
+Copy `config/config.example.yaml` to `config/config.yaml`, then select the
+mirrored iPhone region interactively:
+
+```bash
+make calibrate
+```
+
+Drag a rectangle around the phone in the screenshot and press Enter to save it
+to `config/config.yaml` (press Esc to cancel). The selector uses the captured
+screen pixels, so there is no need to measure and type coordinates. Keep the
+region tightly around the phone; clicks outside it are rejected. Recalibrate
+if you move the mirrored phone window. You can override the config path with
+`make calibrate APP_CONFIG=path/to/config.yaml`, or run
+`python calibrate_region.py --config path/to/config.yaml` directly.
 
 Grant your terminal or Python runtime **Screen Recording** and **Accessibility**
 permissions in macOS System Settings > Privacy & Security. Open and position
