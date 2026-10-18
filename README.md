@@ -41,7 +41,8 @@ if you move the mirrored phone window. You can override the config path with
 Grant your terminal or Python runtime **Screen Recording** and **Accessibility**
 permissions in macOS System Settings > Privacy & Security. Open and position
 iPhone Mirroring before starting the bot. Grant **Input Monitoring** permission
-as well if macOS asks for it, so SmartClick can respond to the global F8 shortcut.
+as well if macOS asks for it, so SmartClick can respond to the global F8 and F9
+shortcuts.
 
 If EasyOCR fails to download its models with
 `CERTIFICATE_VERIFY_FAILED` and Python was installed from python.org, run the
@@ -126,7 +127,10 @@ many seconds without a successful click. The default is 60 seconds, and
 successful click resets the timer and allows another screenshot after the next
 timeout. Screenshots contain the configured capture region and are saved as PNG.
 Press **F8** at any time to save the current monitored region manually. These
-screenshots are saved in the same folder with filenames prefixed `f8_`.
+screenshots are saved in the same folder with filenames prefixed `f8_`. Press
+**F9** to pause or resume detection globally. While paused, SmartClick does not
+capture frames or run the detector; a detection already in progress is allowed
+to finish but will not result in a click if F9 is pressed.
 
 The model's class names must match the normalized labels in this project
 (including spelling and underscores); unsupported classes are ignored. No

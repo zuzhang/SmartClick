@@ -23,33 +23,43 @@ def _interval_for_label(
     return label_intervals.get(label, default_interval)
 
 
-def _save_f8_screenshots(
-    screenshot_requests: queue.Queue[None],
+def _process_keyboard_events(
+    keyboard_events: queue.Queue[str],
     capture,
     region: Mapping[str, int],
     screenshot_dir: Path,
-    wait_timeout: int | float = 0,
-) -> None:
+    paused: bool,
+    wait_timeout: int | float | None = 0,
+) -> tuple[bool, bool]:
+    resumed = False
     try:
-        screenshot_requests.get(timeout=wait_timeout)
+        event = keyboard_events.get(timeout=wait_timeout)
     except queue.Empty:
-        return
+        return paused, resumed
 
     while True:
-        frame = capture.grab(region)
-        screenshot_dir.mkdir(parents=True, exist_ok=True)
-        screenshot_path = screenshot_dir / (
-            f"f8_{datetime.now():%Y%m%d_%H%M%S_%f}.png"
-        )
-        import cv2
+        if event == "screenshot":
+            frame = capture.grab(region)
+            screenshot_dir.mkdir(parents=True, exist_ok=True)
+            screenshot_path = screenshot_dir / (
+                f"f8_{datetime.now():%Y%m%d_%H%M%S_%f}.png"
+            )
+            import cv2
 
-        if not cv2.imwrite(str(screenshot_path), frame):
-            raise OSError(f"Failed to save F8 screenshot: {screenshot_path}")
-        print(f"Saved F8 screenshot to {screenshot_path}")
+            if not cv2.imwrite(str(screenshot_path), frame):
+                raise OSError(f"Failed to save F8 screenshot: {screenshot_path}")
+            print(f"Saved F8 screenshot to {screenshot_path}")
+        elif event == "toggle-pause":
+            paused = not paused
+            if paused:
+                print("Detection paused. Press F9 to resume.")
+            else:
+                resumed = True
+                print("Detection resumed.")
         try:
-            screenshot_requests.get_nowait()
+            event = keyboard_events.get_nowait()
         except queue.Empty:
-            return
+            return paused, resumed
 
 
 def load_config(path: str) -> dict[str, Any]:
@@ -190,11 +200,13 @@ def main() -> None:
     )
     no_click_since = time.monotonic()
     no_click_screenshot_saved = False
-    screenshot_requests: queue.Queue[None] = queue.Queue()
+    keyboard_events: queue.Queue[str] = queue.Queue()
 
     def on_key_press(key) -> None:
         if key == keyboard.Key.f8:
-            screenshot_requests.put(None)
+            keyboard_events.put("screenshot")
+        elif key == keyboard.Key.f9:
+            keyboard_events.put("toggle-pause")
 
     try:
         keyboard_listener = keyboard.Listener(on_press=on_key_press)
@@ -202,17 +214,47 @@ def main() -> None:
         print(
             f"SmartClick running on region {region}; press Ctrl+C or move the "
             "pointer to the screen's upper-left corner to stop; press F8 to "
-            "save a screenshot."
+            "save a screenshot and F9 to pause or resume detection."
         )
+        paused = False
         while True:
-            frame = capture.grab(region)
-            detections = detector.detect(frame)
-            _save_f8_screenshots(
-                screenshot_requests,
+            paused, resumed = _process_keyboard_events(
+                keyboard_events,
                 capture,
                 region,
                 no_click_screenshot_dir,
+                paused,
             )
+            if resumed:
+                no_click_since = time.monotonic()
+            while paused:
+                paused, resumed = _process_keyboard_events(
+                    keyboard_events,
+                    capture,
+                    region,
+                    no_click_screenshot_dir,
+                    paused,
+                    wait_timeout=None,
+                )
+                if resumed:
+                    no_click_since = time.monotonic()
+            if resumed:
+                continue
+
+            frame = capture.grab(region)
+            detections = detector.detect(frame)
+            paused, resumed = _process_keyboard_events(
+                keyboard_events,
+                capture,
+                region,
+                no_click_screenshot_dir,
+                paused,
+            )
+            if resumed:
+                no_click_since = time.monotonic()
+            if paused:
+                continue
+
             for detection in detections:
                 screen_x = region["left"] + detection.center_x
                 screen_y = region["top"] + detection.center_y
@@ -259,13 +301,16 @@ def main() -> None:
                 )
             else:
                 print("No recognized controls detected; not clicking.")
-            _save_f8_screenshots(
-                screenshot_requests,
+            paused, resumed = _process_keyboard_events(
+                keyboard_events,
                 capture,
                 region,
                 no_click_screenshot_dir,
+                paused,
                 wait_timeout=interval,
             )
+            if resumed:
+                no_click_since = time.monotonic()
     except pyautogui.FailSafeException:
         print("\nPyAutoGUI fail-safe activated; SmartClick stopped.")
     except KeyboardInterrupt:

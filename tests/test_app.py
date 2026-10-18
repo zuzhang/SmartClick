@@ -1,5 +1,7 @@
 import sys
+import threading
 import tempfile
+import time
 import types
 import unittest
 from pathlib import Path
@@ -36,7 +38,7 @@ class AppTests(unittest.TestCase):
         pynput_module = types.ModuleType("pynput")
         pynput_module.keyboard = types.SimpleNamespace(
             Listener=KeyboardListener,
-            Key=types.SimpleNamespace(f8=object()),
+            Key=types.SimpleNamespace(f8=object(), f9=object()),
         )
 
         config = {
@@ -49,7 +51,11 @@ class AppTests(unittest.TestCase):
             patch.object(app, "create_detector", return_value=detector),
             patch.object(app, "DecisionEngine", return_value=decision_engine),
             patch.object(app, "Clicker"),
-            patch.object(app, "_save_f8_screenshots") as save_f8_screenshots,
+            patch.object(
+                app,
+                "_process_keyboard_events",
+                return_value=(False, False),
+            ) as process_keyboard_events,
             patch.object(sys, "argv", ["app.py"]),
             patch.dict(
                 sys.modules,
@@ -64,9 +70,9 @@ class AppTests(unittest.TestCase):
 
         self.assertEqual(
             [
-                call.kwargs.get("wait_timeout", 0)
-                for call in save_f8_screenshots.call_args_list
-                if call.kwargs
+                item.kwargs["wait_timeout"]
+                for item in process_keyboard_events.call_args_list
+                if "wait_timeout" in item.kwargs
             ],
             [3.0, 3.0],
         )
@@ -102,7 +108,7 @@ class AppTests(unittest.TestCase):
         pynput_module = types.ModuleType("pynput")
         pynput_module.keyboard = types.SimpleNamespace(
             Listener=KeyboardListener,
-            Key=types.SimpleNamespace(f8=object()),
+            Key=types.SimpleNamespace(f8=object(), f9=object()),
         )
 
         with tempfile.TemporaryDirectory() as directory:
@@ -121,7 +127,11 @@ class AppTests(unittest.TestCase):
                     "monotonic",
                     side_effect=[0.0, 0.0, 0.0, 1.1, 5.0, 6.1],
                 ),
-                patch.object(app, "_save_f8_screenshots"),
+                patch.object(
+                    app,
+                    "_process_keyboard_events",
+                    return_value=(False, False),
+                ),
                 patch.object(sys, "argv", ["app.py"]),
                 patch.dict(
                     sys.modules,
@@ -170,9 +180,10 @@ class AppTests(unittest.TestCase):
         pyautogui_module = types.ModuleType("pyautogui")
         pyautogui_module.FailSafeException = type("FailSafeException", (Exception,), {})
         keyboard_module = types.ModuleType("pynput")
+        f8_key = object()
         keyboard_module.keyboard = types.SimpleNamespace(
             Listener=TriggeringKeyboardListener,
-            Key=types.SimpleNamespace(f8=object()),
+            Key=types.SimpleNamespace(f8=f8_key, f9=object()),
         )
         detector = Mock()
         detector.detect.return_value = []
@@ -206,7 +217,74 @@ class AppTests(unittest.TestCase):
         opencv_module.imwrite.assert_called_once()
         saved_path, saved_frame = opencv_module.imwrite.call_args.args
         self.assertTrue(Path(saved_path).name.startswith("f8_"))
-        self.assertEqual(saved_frame, manual_frame)
+        self.assertEqual(saved_frame, monitored_frame)
+        capture.close.assert_called_once()
+
+    def test_f9_pauses_before_clicking_and_waits_for_resume(self):
+        detection = Detection("play", 0.9, 10, 20)
+        f9_key = object()
+        keyboard_listener = None
+        resume_detect_counts = []
+
+        class TriggeringKeyboardListener(KeyboardListener):
+            def __init__(self, on_press):
+                super().__init__(on_press)
+                nonlocal keyboard_listener
+                keyboard_listener = self
+
+            def start(self):
+                pass
+
+        detector = Mock()
+        detector.detect.side_effect = lambda frame: (
+            keyboard_listener.on_press(f9_key) or [detection]
+        )
+        capture = Mock()
+        capture.grab.side_effect = [object(), KeyboardInterrupt]
+        screen_capture_module = types.ModuleType("capture.screen_capture")
+        screen_capture_module.ScreenCapture = Mock(return_value=capture)
+        pyautogui_module = types.ModuleType("pyautogui")
+        pyautogui_module.FailSafeException = type("FailSafeException", (Exception,), {})
+        pynput_module = types.ModuleType("pynput")
+        pynput_module.keyboard = types.SimpleNamespace(
+            Listener=TriggeringKeyboardListener,
+            Key=types.SimpleNamespace(f8=object(), f9=f9_key),
+        )
+
+        def resume_after_pause():
+            time.sleep(0.01)
+            resume_detect_counts.append(detector.detect.call_count)
+            keyboard_listener.on_press(f9_key)
+
+        with (
+            patch.object(
+                app,
+                "load_config",
+                return_value={
+                    "region": {"left": 0, "top": 0, "width": 100, "height": 100},
+                    "interval_seconds": 0.001,
+                },
+            ),
+            patch.object(app, "create_detector", return_value=detector),
+            patch.object(app, "DecisionEngine") as decision_engine_class,
+            patch.object(app, "Clicker") as clicker_class,
+            patch.object(sys, "argv", ["app.py"]),
+            patch.dict(
+                sys.modules,
+                {
+                    "capture.screen_capture": screen_capture_module,
+                    "pyautogui": pyautogui_module,
+                    "pynput": pynput_module,
+                },
+            ),
+        ):
+            threading.Timer(0.05, resume_after_pause).start()
+            app.main()
+
+        self.assertEqual(resume_detect_counts, [1])
+        decision_engine_class.return_value.choose.assert_not_called()
+        clicker_class.return_value.click_detection.assert_not_called()
+        self.assertEqual(capture.grab.call_count, 2)
         capture.close.assert_called_once()
 
 
