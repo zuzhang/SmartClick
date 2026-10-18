@@ -124,8 +124,17 @@ test the detection output before allowing the bot to click.
 
 ## Development
 
-Run the tests with:
+The Makefile provides shortcuts for the common run, test, and CVAT import
+commands. Override `PYTHON` if your environment uses a different Python
+executable:
 
 ```bash
-python -m unittest discover -s tests -v
+make help
+make test
+make run
+make import-cvat CVAT_SOURCE=/path/to/cvat-export.zip
 ```
+
+Use `OVERWRITE=1` with `import-cvat` only when you intend to replace files with
+matching names. The equivalent direct Python commands are also supported; see
+[YOLO_TRAINING.md](YOLO_TRAINING.md) for the CVAT import details.

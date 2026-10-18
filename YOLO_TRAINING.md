@@ -48,25 +48,26 @@ The coordinates are normalized to the image dimensions, from 0 to 1. An image
 with multiple boxes has multiple rows. The image and label basenames must match,
 for example `screen01.png` and `screen01.txt`.
 
-Arrange the exported images and labels like this. The repository's current
-`training/game-controls.yaml` uses the `Train` and `Validation` subset names:
+Import the CVAT ZIP directly from the project root:
 
-```text
-training/
-  images/
-    Train/
-    Validation/
-  labels/
-    Train/
-    Validation/
+```bash
+python training/import_cvat.py /path/to/cvat-export.zip
 ```
 
-CVAT may export all images into a single subset. In that case, split the
-images between the training and validation subsets yourself and move each
-image's matching label file into the corresponding labels folder. Keep
-near-duplicate screenshots together in one split. Images without target
-objects can be included as negative examples; if CVAT did not export an empty
-`.txt` file for one, the image can still stay in the dataset without one.
+You can also pass the extracted export folder instead of a ZIP. The importer
+copies images and matching labels into the split directories configured in
+`training/game-controls.yaml`. It recognizes `train`, `Train`, `val`, `valid`,
+and `Validation` regardless of case, so CVAT's lowercase `train` directory is
+imported into the configured `Train` directory without editing the YAML. The
+importer does not replace existing files unless you explicitly pass
+`--overwrite`; filename collisions otherwise stop the import.
+
+The export must contain both training and validation subsets. If CVAT exports
+everything into one subset, first split the images and their matching labels
+into train and validation folders. Keep near-duplicate screenshots together in
+one split. Images without target objects can be included as negative examples;
+if CVAT did not export an empty `.txt` file for one, the image can still stay
+in the dataset without one.
 
 ## 3. Create the dataset configuration
 
