@@ -141,11 +141,14 @@ executable:
 
 ```bash
 make help
+make calibrate
 make test
 make run
 make import-cvat CVAT_SOURCE=/path/to/cvat-export.zip
 ```
 
+`make calibrate` selects the phone region and saves it to the configured app
+config. Override `APP_CONFIG` to use a different config file.
 Use `OVERWRITE=1` with `import-cvat` only when you intend to replace files with
 matching names. The equivalent direct Python commands are also supported; see
 [YOLO_TRAINING.md](YOLO_TRAINING.md) for the CVAT import details.
