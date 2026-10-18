@@ -1,5 +1,6 @@
 import argparse
 import math
+import queue
 import time
 from collections.abc import Mapping
 from datetime import datetime
@@ -20,6 +21,35 @@ def _interval_for_label(
     if label is None:
         return default_interval
     return label_intervals.get(label, default_interval)
+
+
+def _save_f8_screenshots(
+    screenshot_requests: queue.Queue[None],
+    capture,
+    region: Mapping[str, int],
+    screenshot_dir: Path,
+    wait_timeout: int | float = 0,
+) -> None:
+    try:
+        screenshot_requests.get(timeout=wait_timeout)
+    except queue.Empty:
+        return
+
+    while True:
+        frame = capture.grab(region)
+        screenshot_dir.mkdir(parents=True, exist_ok=True)
+        screenshot_path = screenshot_dir / (
+            f"f8_{datetime.now():%Y%m%d_%H%M%S_%f}.png"
+        )
+        import cv2
+
+        if not cv2.imwrite(str(screenshot_path), frame):
+            raise OSError(f"Failed to save F8 screenshot: {screenshot_path}")
+        print(f"Saved F8 screenshot to {screenshot_path}")
+        try:
+            screenshot_requests.get_nowait()
+        except queue.Empty:
+            return
 
 
 def load_config(path: str) -> dict[str, Any]:
@@ -143,6 +173,7 @@ def main() -> None:
     decision_engine = DecisionEngine(config.get("min_confidence", 0.8))
     clicker = Clicker(region)
     import pyautogui
+    from pynput import keyboard
 
     from capture.screen_capture import ScreenCapture
 
@@ -159,15 +190,29 @@ def main() -> None:
     )
     no_click_since = time.monotonic()
     no_click_screenshot_saved = False
+    screenshot_requests: queue.Queue[None] = queue.Queue()
+
+    def on_key_press(key) -> None:
+        if key == keyboard.Key.f8:
+            screenshot_requests.put(None)
 
     try:
+        keyboard_listener = keyboard.Listener(on_press=on_key_press)
+        keyboard_listener.start()
         print(
             f"SmartClick running on region {region}; press Ctrl+C or move the "
-            "pointer to the screen's upper-left corner to stop."
+            "pointer to the screen's upper-left corner to stop; press F8 to "
+            "save a screenshot."
         )
         while True:
             frame = capture.grab(region)
             detections = detector.detect(frame)
+            _save_f8_screenshots(
+                screenshot_requests,
+                capture,
+                region,
+                no_click_screenshot_dir,
+            )
             for detection in detections:
                 screen_x = region["left"] + detection.center_x
                 screen_y = region["top"] + detection.center_y
@@ -214,13 +259,23 @@ def main() -> None:
                 )
             else:
                 print("No recognized controls detected; not clicking.")
-            time.sleep(interval)
+            _save_f8_screenshots(
+                screenshot_requests,
+                capture,
+                region,
+                no_click_screenshot_dir,
+                wait_timeout=interval,
+            )
     except pyautogui.FailSafeException:
         print("\nPyAutoGUI fail-safe activated; SmartClick stopped.")
     except KeyboardInterrupt:
         print("\nSmartClick stopped.")
     finally:
-        capture.close()
+        try:
+            if "keyboard_listener" in locals():
+                keyboard_listener.stop()
+        finally:
+            capture.close()
 
 
 if __name__ == "__main__":

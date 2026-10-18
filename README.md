@@ -40,7 +40,8 @@ if you move the mirrored phone window. You can override the config path with
 
 Grant your terminal or Python runtime **Screen Recording** and **Accessibility**
 permissions in macOS System Settings > Privacy & Security. Open and position
-iPhone Mirroring before starting the bot.
+iPhone Mirroring before starting the bot. Grant **Input Monitoring** permission
+as well if macOS asks for it, so SmartClick can respond to the global F8 shortcut.
 
 If EasyOCR fails to download its models with
 `CERTIFICATE_VERIFY_FAILED` and Python was installed from python.org, run the
@@ -124,6 +125,8 @@ many seconds without a successful click. The default is 60 seconds, and
 `review_screenshots`). Only one screenshot is saved per no-click period; a
 successful click resets the timer and allows another screenshot after the next
 timeout. Screenshots contain the configured capture region and are saved as PNG.
+Press **F8** at any time to save the current monitored region manually. These
+screenshots are saved in the same folder with filenames prefixed `f8_`.
 
 The model's class names must match the normalized labels in this project
 (including spelling and underscores); unsupported classes are ignored. No
@@ -132,8 +135,17 @@ test the detection output before allowing the bot to click.
 
 ## Development
 
-Run the tests with:
+The Makefile provides shortcuts for the common run, test, and CVAT import
+commands. Override `PYTHON` if your environment uses a different Python
+executable:
 
 ```bash
-python -m unittest discover -s tests -v
+make help
+make test
+make run
+make import-cvat CVAT_SOURCE=/path/to/cvat-export.zip
 ```
+
+Use `OVERWRITE=1` with `import-cvat` only when you intend to replace files with
+matching names. The equivalent direct Python commands are also supported; see
+[YOLO_TRAINING.md](YOLO_TRAINING.md) for the CVAT import details.

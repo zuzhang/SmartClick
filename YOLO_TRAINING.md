@@ -48,25 +48,26 @@ The coordinates are normalized to the image dimensions, from 0 to 1. An image
 with multiple boxes has multiple rows. The image and label basenames must match,
 for example `screen01.png` and `screen01.txt`.
 
-Arrange the exported images and labels like this. The repository's current
-`training/game-controls.yaml` uses the `Train` and `Validation` subset names:
+Import the CVAT ZIP directly from the project root:
 
-```text
-training/
-  images/
-    Train/
-    Validation/
-  labels/
-    Train/
-    Validation/
+```bash
+python training/import_cvat.py /path/to/cvat-export.zip
 ```
 
-CVAT may export all images into a single subset. In that case, split the
-images between the training and validation subsets yourself and move each
-image's matching label file into the corresponding labels folder. Keep
-near-duplicate screenshots together in one split. Images without target
-objects can be included as negative examples; if CVAT did not export an empty
-`.txt` file for one, the image can still stay in the dataset without one.
+You can also pass the extracted export folder instead of a ZIP. The importer
+copies images and matching labels into the split directories configured in
+`training/game-controls.yaml`. It recognizes `train`, `Train`, `val`, `valid`,
+and `Validation` regardless of case, so CVAT's lowercase `train` directory is
+imported into the configured `Train` directory without editing the YAML. The
+importer does not replace existing files unless you explicitly pass
+`--overwrite`; filename collisions otherwise stop the import.
+
+The export must contain both training and validation subsets. If CVAT exports
+everything into one subset, first split the images and their matching labels
+into train and validation folders. Keep near-duplicate screenshots together in
+one split. Images without target objects can be included as negative examples;
+if CVAT did not export an empty `.txt` file for one, the image can still stay
+in the dataset without one.
 
 ## 3. Create the dataset configuration
 
@@ -110,7 +111,15 @@ matching image and label directory structure.
 
 ## 4. Train the detector
 
-From the project root, with the virtual environment active, run:
+From the project root, with the virtual environment active, choose the value
+for your hardware from this table and use it for `device` in the command below:
+
+| Hardware | `device` value | Notes |
+| --- | --- | --- |
+| Apple Silicon (M1/M2/M3/M4 and later) | `mps` | Requires PyTorch MPS support. |
+| NVIDIA GPU | `0` (or GPU index) | Requires CUDA-enabled PyTorch. |
+| AMD GPU on Linux | `0` | Requires a compatible PyTorch ROCm setup. |
+| Intel Mac, no supported GPU, or GPU fallback | `cpu` | Slower, but needs no GPU setup. |
 
 ```bash
 yolo detect train \
@@ -118,14 +127,12 @@ yolo detect train \
   data=training/game-controls.yaml \
   epochs=20 \
   imgsz=640 \
-  device=cpu
+  device=<device>
 ```
 
-This command starts from the pretrained `yolo11n.pt` checkpoint, trains for 20
-epochs at 640-pixel image size, and uses the CPU. CPU training works without a
-supported GPU but can take substantially longer. To use an available GPU,
-omit `device=cpu` or set `device=0`. Ultralytics downloads the pretrained
-checkpoint if necessary.
+For multiple NVIDIA GPUs, use the desired GPU index (for example, `1`). If MPS
+is unavailable or unsupported by an operation, use `cpu`. Ultralytics downloads
+the pretrained `yolo11n.pt` checkpoint if necessary.
 
 Training results are written to a run directory such as
 `runs/detect/train/`; if that name already exists, Ultralytics creates another
@@ -164,8 +171,10 @@ yolo detect train \
   data=training/game-controls.yaml \
   epochs=20 \
   imgsz=640 \
-  device=cpu
+  device=<device>
 ```
+
+Use the same `device` value from the table above.
 
 Keep the earlier training images in the training set when possible; training
 only on new images can make the model forget controls it previously learned.
@@ -173,7 +182,40 @@ The command above starts a new fine-tuning run from `best.pt`. It does not
 resume the previous run's optimizer state. Use `resume=True` only to continue
 an interrupted run with its `last.pt`, not as the normal way to add data.
 
-## 6. Test on a screenshot
+## 6. Generate a CVAT review dataset from screenshots
+
+The helper script runs the model on every supported image in
+`review_screenshots/` and creates a CVAT Ultralytics YOLO Detection dataset ZIP.
+It uses `models/best.pt` and a confidence threshold of `0.2` by default. Install
+Ultralytics if it is not already available in the active environment:
+
+```bash
+python -m pip install ultralytics
+```
+
+Copy the example config if you want to change the screenshot directory, model,
+confidence threshold, or output directory:
+
+```bash
+cp config/auto_label.example.yaml config/auto_label.yaml
+```
+
+Edit `config/auto_label.yaml` and run:
+
+```bash
+python training/prepare_cvat_predictions.py
+```
+
+All supported image files in the configured screenshot directory, including
+files in subdirectories, are processed each time. The output ZIP is written
+under `cvat_imports/` by default. In CVAT, open a project, choose **Actions >
+Import dataset**, select **Ultralytics YOLO Detection 1.0**, and upload the ZIP.
+Importing a dataset into a project creates a new task with the images and
+predicted annotations so they can be reviewed and corrected in CVAT. The ZIP
+contains the original screenshots and prediction labels, not rendered preview
+images. Model class names and IDs are taken directly from the model.
+
+## 7. Test on a screenshot
 
 Use a screenshot that was not used for training. Replace the example path with
 the full path to your image:
@@ -204,7 +246,7 @@ yolo detect val \
 With a small dataset, validation metrics can vary substantially. Test on
 several varied screenshots that were not used for training as well.
 
-## 7. Use the model with SmartClick
+## 8. Use the model with SmartClick
 
 Copy the trained checkpoint into the project and configure the app:
 
@@ -214,7 +256,7 @@ cp runs/detect/<your-run-name>/weights/best.pt models/best.pt
 cp config/config.example.yaml config/config.yaml
 ```
 
-In `config/config.yaml`, set:
+In `config/config.yaml`, set `device` to match the hardware:
 
 ```yaml
 detector: yolo
@@ -222,10 +264,10 @@ model_path: models/best.pt
 device: mps
 ```
 
-On an Apple Silicon Mac, `device: mps` requests inference on the Apple GPU.
-Use `device: cpu` to force CPU inference, or omit `device` to let Ultralytics
-choose. The active PyTorch installation must support MPS; verify it from the
-same virtual environment with:
+Use `device: mps` on Apple Silicon, `device: 0` for a configured NVIDIA GPU,
+and `device: cpu` to force CPU inference. You can also omit `device` to let
+Ultralytics choose. The active PyTorch installation must support MPS; verify it
+from the same virtual environment with:
 
 ```bash
 python -c "import torch; print(torch.backends.mps.is_available())"
