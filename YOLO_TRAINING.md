@@ -110,13 +110,12 @@ matching image and label directory structure.
 
 ## 4. Train the detector
 
-From the project root, with the virtual environment active, choose the command
-for your hardware. Replace `<device>` in the command with the value in this
-table:
+From the project root, with the virtual environment active, choose the value
+for your hardware from this table and use it for `device` in the command below:
 
 | Hardware | `device` value | Notes |
 | --- | --- | --- |
-| Apple Silicon (M1/M2/M3/M4 and later) | `mps` | Uses PyTorch MPS; check `torch.backends.mps.is_available()` is `True`. |
+| Apple Silicon (M1/M2/M3/M4 and later) | `mps` | Requires PyTorch MPS support. |
 | NVIDIA GPU | `0` (or GPU index) | Requires CUDA-enabled PyTorch. |
 | AMD GPU on Linux | `0` | Requires a compatible PyTorch ROCm setup. |
 | Intel Mac, no supported GPU, or GPU fallback | `cpu` | Slower, but needs no GPU setup. |
