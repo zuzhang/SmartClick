@@ -110,7 +110,16 @@ matching image and label directory structure.
 
 ## 4. Train the detector
 
-From the project root, with the virtual environment active, run:
+From the project root, with the virtual environment active, choose the command
+for your hardware. Replace `<device>` in the command with the value in this
+table:
+
+| Hardware | `device` value | Notes |
+| --- | --- | --- |
+| Apple Silicon (M1/M2/M3/M4 and later) | `mps` | Uses PyTorch MPS; check `torch.backends.mps.is_available()` is `True`. |
+| NVIDIA GPU | `0` (or GPU index) | Requires CUDA-enabled PyTorch. |
+| AMD GPU on Linux | `0` | Requires a compatible PyTorch ROCm setup. |
+| Intel Mac, no supported GPU, or GPU fallback | `cpu` | Slower, but needs no GPU setup. |
 
 ```bash
 yolo detect train \
@@ -118,14 +127,12 @@ yolo detect train \
   data=training/game-controls.yaml \
   epochs=20 \
   imgsz=640 \
-  device=cpu
+  device=<device>
 ```
 
-This command starts from the pretrained `yolo11n.pt` checkpoint, trains for 20
-epochs at 640-pixel image size, and uses the CPU. CPU training works without a
-supported GPU but can take substantially longer. To use an available GPU,
-omit `device=cpu` or set `device=0`. Ultralytics downloads the pretrained
-checkpoint if necessary.
+For multiple NVIDIA GPUs, use the desired GPU index (for example, `1`). If MPS
+is unavailable or unsupported by an operation, use `cpu`. Ultralytics downloads
+the pretrained `yolo11n.pt` checkpoint if necessary.
 
 Training results are written to a run directory such as
 `runs/detect/train/`; if that name already exists, Ultralytics creates another
@@ -164,8 +171,10 @@ yolo detect train \
   data=training/game-controls.yaml \
   epochs=20 \
   imgsz=640 \
-  device=cpu
+  device=<device>
 ```
+
+Use the same `device` value from the table above.
 
 Keep the earlier training images in the training set when possible; training
 only on new images can make the model forget controls it previously learned.
@@ -247,7 +256,7 @@ cp runs/detect/<your-run-name>/weights/best.pt models/best.pt
 cp config/config.example.yaml config/config.yaml
 ```
 
-In `config/config.yaml`, set:
+In `config/config.yaml`, set `device` to match the hardware:
 
 ```yaml
 detector: yolo
@@ -255,10 +264,10 @@ model_path: models/best.pt
 device: mps
 ```
 
-On an Apple Silicon Mac, `device: mps` requests inference on the Apple GPU.
-Use `device: cpu` to force CPU inference, or omit `device` to let Ultralytics
-choose. The active PyTorch installation must support MPS; verify it from the
-same virtual environment with:
+Use `device: mps` on Apple Silicon, `device: 0` for a configured NVIDIA GPU,
+and `device: cpu` to force CPU inference. You can also omit `device` to let
+Ultralytics choose. The active PyTorch installation must support MPS; verify it
+from the same virtual environment with:
 
 ```bash
 python -c "import torch; print(torch.backends.mps.is_available())"
