@@ -110,8 +110,8 @@ matching image and label directory structure.
 
 ## 4. Train the detector
 
-From the project root, with the virtual environment active, choose the command
-for your hardware. Replace `<device>` with the value from this table:
+From the project root, with the virtual environment active, choose the value
+for your hardware from this table and use it for `device` in the command below:
 
 | Hardware | `device` value | Notes |
 | --- | --- | --- |
@@ -181,7 +181,40 @@ The command above starts a new fine-tuning run from `best.pt`. It does not
 resume the previous run's optimizer state. Use `resume=True` only to continue
 an interrupted run with its `last.pt`, not as the normal way to add data.
 
-## 6. Test on a screenshot
+## 6. Generate a CVAT review dataset from screenshots
+
+The helper script runs the model on every supported image in
+`review_screenshots/` and creates a CVAT Ultralytics YOLO Detection dataset ZIP.
+It uses `models/best.pt` and a confidence threshold of `0.2` by default. Install
+Ultralytics if it is not already available in the active environment:
+
+```bash
+python -m pip install ultralytics
+```
+
+Copy the example config if you want to change the screenshot directory, model,
+confidence threshold, or output directory:
+
+```bash
+cp config/auto_label.example.yaml config/auto_label.yaml
+```
+
+Edit `config/auto_label.yaml` and run:
+
+```bash
+python training/prepare_cvat_predictions.py
+```
+
+All supported image files in the configured screenshot directory, including
+files in subdirectories, are processed each time. The output ZIP is written
+under `cvat_imports/` by default. In CVAT, open a project, choose **Actions >
+Import dataset**, select **Ultralytics YOLO Detection 1.0**, and upload the ZIP.
+Importing a dataset into a project creates a new task with the images and
+predicted annotations so they can be reviewed and corrected in CVAT. The ZIP
+contains the original screenshots and prediction labels, not rendered preview
+images. Model class names and IDs are taken directly from the model.
+
+## 7. Test on a screenshot
 
 Use a screenshot that was not used for training. Replace the example path with
 the full path to your image:
@@ -212,7 +245,7 @@ yolo detect val \
 With a small dataset, validation metrics can vary substantially. Test on
 several varied screenshots that were not used for training as well.
 
-## 7. Use the model with SmartClick
+## 8. Use the model with SmartClick
 
 Copy the trained checkpoint into the project and configure the app:
 
@@ -222,7 +255,7 @@ cp runs/detect/<your-run-name>/weights/best.pt models/best.pt
 cp config/config.example.yaml config/config.yaml
 ```
 
-In `config/config.yaml`, set:
+In `config/config.yaml`, set `device` to match the hardware:
 
 ```yaml
 detector: yolo

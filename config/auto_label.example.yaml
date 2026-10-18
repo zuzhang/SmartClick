@@ -1,0 +1,4 @@
+source_dir: review_screenshots
+model_path: models/best.pt
+confidence: 0.2
+output_dir: cvat_imports
