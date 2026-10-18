@@ -6,16 +6,21 @@ DATASET_CONFIG ?= training/game-controls.yaml
 CVAT_SOURCE ?=
 OVERWRITE ?= 0
 
-.PHONY: help run test import-cvat
+.PHONY: help calibrate run test import-cvat
 
 help:
 	@printf '%s\n' \
 		'SmartClick commands:' \
-		'  make run APP_CONFIG=config/config.yaml' \
+		'  make calibrate' \
+		'  make run' \
 		'  make test' \
 		'  make import-cvat CVAT_SOURCE=/path/to/cvat-export.zip'
 	@printf '%s\n' \
+		'Override APP_CONFIG to select the app config.' \
 		'Set OVERWRITE=1 with import-cvat to replace files with matching names.'
+
+calibrate:
+	$(PYTHON) calibrate_region.py --config "$(APP_CONFIG)"
 
 run:
 	$(PYTHON) app.py --config "$(APP_CONFIG)"
